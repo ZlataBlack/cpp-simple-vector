@@ -1,7 +1,6 @@
 #pragma once
 
 #include "array_ptr.h"
-
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -29,31 +28,24 @@ public:
 
     SimpleVector() noexcept = default;
 
-    explicit SimpleVector(size_t size)
-        : data_(size)
-        , size_(size)
-        , capacity_(size) {
+    explicit SimpleVector(size_t size) : data_(size),
+    size_(size), capacity_(size) {
     }
 
-    explicit SimpleVector(ReserveTag reserve)
-        : data_(reserve.capacity)
-        , capacity_(reserve.capacity) {
+    explicit SimpleVector(ReserveTag reserve) : data_(reserve.capacity), 
+    capacity_(reserve.capacity) {
     }
 
-    SimpleVector(size_t size, const Type& value)
-        : SimpleVector(size) {
+    SimpleVector(size_t size, const Type& value) : SimpleVector(size) {
         std::fill(begin(), end(), value);
     }
 
-    SimpleVector(std::initializer_list<Type> init)
-        : SimpleVector(init.size()) {
+    SimpleVector(std::initializer_list<Type> init) : SimpleVector(init.size()) {
         std::copy(init.begin(), init.end(), begin());
     }
 
-    SimpleVector(const SimpleVector& other)
-        : data_(other.size_)
-        , size_(other.size_)
-        , capacity_(other.size_) {
+    SimpleVector(const SimpleVector& other) : data_(other.size_),
+    size_(other.size_), capacity_(other.size_) {
         std::copy(other.begin(), other.end(), begin());
     }
 
@@ -168,8 +160,7 @@ public:
             return;
         }
 
-        const size_t new_capacity =
-            capacity_ == 0 ? 1 : capacity_ * 2;
+        const size_t new_capacity = capacity_ == 0 ? 1 : capacity_ * 2;
 
         ArrayPtr<Type> new_data(new_capacity);
 
@@ -230,8 +221,7 @@ public:
             static_cast<size_t>(pos - begin());
 
         std::move(
-            begin() + index + 1,
-            end(),
+            begin() + index + 1, end(),
             begin() + index
         );
 
@@ -272,13 +262,10 @@ public:
 
 private:
     Iterator InsertImpl(ConstIterator pos, Type&& value) {
-        const size_t index = size_ == 0
-            ? 0
-            : static_cast<size_t>(pos - begin());
+        const size_t index = size_ == 0? 0 : static_cast<size_t>(pos - begin());
 
         if (size_ == capacity_) {
-            const size_t new_capacity =
-                capacity_ == 0 ? 1 : capacity_ * 2;
+            const size_t new_capacity = capacity_ == 0 ? 1 : capacity_ * 2;
 
             ArrayPtr<Type> new_data(new_capacity);
 
@@ -289,17 +276,13 @@ private:
             new_data[index] = std::move(value);
 
             for (size_t i = index; i < size_; ++i) {
-                new_data[i + 1] =
-                    std::move_if_noexcept(data_[i]);
+                new_data[i + 1] = std::move_if_noexcept(data_[i]);
             }
 
             data_.Swap(new_data);
             capacity_ = new_capacity;
         } else {
-            std::move_backward(
-                begin() + index,
-                end(),
-                end() + 1
+            std::move_backward( begin() + index, end(), end() + 1
             );
 
             data_[index] = std::move(value);
