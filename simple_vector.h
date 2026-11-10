@@ -1,6 +1,7 @@
 #pragma once
 
 #include "array_ptr.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -115,9 +116,7 @@ public:
 
         ArrayPtr<Type> new_data(new_capacity);
 
-        for (size_t i = 0; i < size_; ++i) {
-            new_data[i] = std::move_if_noexcept(data_[i]);
-        }
+        std::move(begin(), end(), new_data.Get());
 
         data_.Swap(new_data);
         capacity_ = new_capacity;
@@ -131,10 +130,10 @@ public:
 
         if (new_size <= capacity_) {
             std::generate(
-                begin() + size_,
-                begin() + new_size,
-                [] {
-                    return Type{};
+             begin() + size_,
+             begin() + new_size,
+             [] {
+                return Type{};
                 }
             );
 
@@ -142,15 +141,17 @@ public:
             return;
         }
 
-        ArrayPtr<Type> new_data(new_size);
+        Reserve(new_size);
 
-        for (size_t i = 0; i < size_; ++i) {
-            new_data[i] = std::move_if_noexcept(data_[i]);
-        }
+        std::generate(
+            begin() + size_,
+            begin() + new_size,
+            [] {
+                return Type{};
+            }
+        );
 
-        data_.Swap(new_data);
         size_ = new_size;
-        capacity_ = new_size;
     }
 
     void PushBack(const Type& item) {
@@ -159,20 +160,15 @@ public:
             ++size_;
             return;
         }
+        
+        Type value(item);
 
         const size_t new_capacity = capacity_ == 0 ? 1 : capacity_ * 2;
 
-        ArrayPtr<Type> new_data(new_capacity);
+        Reserve(new_capacity);
 
-        for (size_t i = 0; i < size_; ++i) {
-            new_data[i] = std::move_if_noexcept(data_[i]);
-        }
-
-        new_data[size_] = item;
-
-        data_.Swap(new_data);
+        data_[size_] = std::move_if_noexcept(value);
         ++size_;
-        capacity_ = new_capacity;
     }
 
     void PushBack(Type&& item) {
@@ -185,18 +181,10 @@ public:
         Type value(std::move(item));
 
         const size_t new_capacity = capacity_ == 0 ? 1 : capacity_ * 2;
+        Reserve(new_capacity);
 
-        ArrayPtr<Type> new_data(new_capacity);
-
-        for (size_t i = 0; i < size_; ++i) {
-            new_data[i] = std::move_if_noexcept(data_[i]);
-        }
-
-        new_data[size_] = std::move(value);
-
-        data_.Swap(new_data);
+        data_[size_] = std::move(value);
         ++size_;
-        capacity_ = new_capacity;
     }
 
     Iterator Insert(ConstIterator pos, const Type& value) {
@@ -241,7 +229,7 @@ public:
     }
 
     Iterator end() noexcept {
-        return data_ ? data_.Get() + size_ : nullptr;
+        return data_.Get() + size_;
     }
 
     ConstIterator begin() const noexcept {
@@ -249,7 +237,7 @@ public:
     }
 
     ConstIterator end() const noexcept {
-        return data_ ? data_.Get() + size_ : nullptr;
+        return data_.Get() + size_;
     }
 
     ConstIterator cbegin() const noexcept {
@@ -267,26 +255,16 @@ private:
         if (size_ == capacity_) {
             const size_t new_capacity = capacity_ == 0 ? 1 : capacity_ * 2;
 
-            ArrayPtr<Type> new_data(new_capacity);
-
-            for (size_t i = 0; i < index; ++i) {
-                new_data[i] = std::move_if_noexcept(data_[i]);
-            }
-
-            new_data[index] = std::move(value);
-
-            for (size_t i = index; i < size_; ++i) {
-                new_data[i + 1] = std::move_if_noexcept(data_[i]);
-            }
-
-            data_.Swap(new_data);
-            capacity_ = new_capacity;
-        } else {
-            std::move_backward( begin() + index, end(), end() + 1
-            );
-
-            data_[index] = std::move(value);
+            Reserve(new_capacity);
         }
+
+        std::move_backward(
+            begin() + index,
+            end(),
+            end() + 1
+        );
+
+        data_[index] = std::move(value);
 
         ++size_;
 
@@ -298,7 +276,7 @@ private:
     size_t capacity_ = 0;
 };
 
-template <typename Type>
+template <typename Type>        
 inline bool operator==(
     const SimpleVector<Type>& lhs,
     const SimpleVector<Type>& rhs
